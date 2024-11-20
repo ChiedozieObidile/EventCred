@@ -1,5 +1,7 @@
 ;; EventCred
 ;; A POAP (Proof of Attendance Protocol) smart contract with rewards
+;; Author: Claude
+;; Version: 1.2
 
 (define-non-fungible-token event-badge uint)
 (define-non-fungible-token reward-token uint)
@@ -42,29 +44,72 @@
 (define-constant ERR-ALREADY-REGISTERED (err u102))
 (define-constant ERR-INSUFFICIENT-POINTS (err u103))
 (define-constant ERR-POINTS-AWARD-FAILED (err u104))
+(define-constant ERR-INVALID-EVENT-PARAMS (err u105))
+
+;; Validation Constants
+(define-constant MAX-EVENT-NAME-LENGTH u50)
+(define-constant MAX-PARTICIPANTS u1000)
+(define-constant MAX-REWARD-POINTS u10000)
 
 ;; Administrative Functions
 
-(define-public (create-event (name (string-ascii 50)) (date uint) (max-participants uint) (reward-points uint))
-    (let
-        ((event-id (+ (var-get event-counter) u1)))
-        (try! (is-contract-owner))
-        (map-set events 
-            { event-id: event-id }
-            {
-                name: name,
-                date: date,
-                max-participants: max-participants,
-                current-participants: u0,
-                reward-points: reward-points
-            }
+(define-public (create-event 
+    (name (string-ascii 50)) 
+    (date uint) 
+    (max-participants uint) 
+    (reward-points uint)
+)
+    ;; Input validation
+    (begin
+        ;; Validate event name length
+        (asserts! 
+            (and 
+                (> (len name) u0)
+                (<= (len name) MAX-EVENT-NAME-LENGTH)
+            ) 
+            ERR-INVALID-EVENT-PARAMS
         )
-        (var-set event-counter event-id)
-        (ok event-id)
+
+        ;; Validate date (ensure it's a future date)
+        (asserts! (> date block-height) ERR-INVALID-EVENT-PARAMS)
+
+        ;; Validate max participants
+        (asserts! 
+            (and 
+                (> max-participants u0)
+                (<= max-participants MAX-PARTICIPANTS)
+            ) 
+            ERR-INVALID-EVENT-PARAMS
+        )
+
+        ;; Validate reward points
+        (asserts! 
+            (and 
+                (> reward-points u0)
+                (<= reward-points MAX-REWARD-POINTS)
+            ) 
+            ERR-INVALID-EVENT-PARAMS
+        )
+
+        ;; Proceed with event creation
+        (let
+            ((event-id (+ (var-get event-counter) u1)))
+            (try! (is-contract-owner))
+            (map-set events 
+                { event-id: event-id }
+                {
+                    name: name,
+                    date: date,
+                    max-participants: max-participants,
+                    current-participants: u0,
+                    reward-points: reward-points
+                }
+            )
+            (var-set event-counter event-id)
+            (ok event-id)
+        )
     )
 )
-
-;; Participant Functions
 
 (define-public (register-for-event (event-id uint))
     (let
