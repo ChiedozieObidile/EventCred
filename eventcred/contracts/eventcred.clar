@@ -1,7 +1,5 @@
 ;; EventCred
 ;; A POAP (Proof of Attendance Protocol) smart contract with cross-platform rewards
-;; Author: Claude
-;; Version: 1.3
 
 (define-non-fungible-token event-badge uint)
 (define-non-fungible-token reward-token uint)
@@ -53,6 +51,7 @@
 (define-constant ERR-POINTS-AWARD-FAILED (err u104))
 (define-constant ERR-INVALID-EVENT-PARAMS (err u105))
 (define-constant ERR-PLATFORM-NOT-FOUND (err u106))
+(define-constant ERR-INVALID-PLATFORM-TAG (err u107))
 
 ;; Validation Constants
 (define-constant MAX-EVENT-NAME-LENGTH u50)
@@ -60,6 +59,7 @@
 (define-constant MAX-REWARD-POINTS u10000)
 (define-constant MAX-PLATFORM-TAGS u10)
 (define-constant MAX-ALLIANCE-MULTIPLIER u5)
+(define-constant MAX-PLATFORM-TAG-LENGTH u20)
 
 ;; Administrative Functions
 
@@ -68,6 +68,15 @@
     (multiplier uint)
 )
     (begin
+        ;; Validate platform-tag
+        (asserts! 
+            (and 
+                (> (len platform-tag) u0)
+                (<= (len platform-tag) MAX-PLATFORM-TAG-LENGTH)
+            ) 
+            ERR-INVALID-PLATFORM-TAG
+        )
+
         ;; Validate multiplier
         (asserts! 
             (and 
